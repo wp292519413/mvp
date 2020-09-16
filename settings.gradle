@@ -1,0 +1,4 @@
+include ':login'
+include ':app'
+include ':framework'
+rootProject.name = "mvp"
