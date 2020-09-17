@@ -1,8 +1,9 @@
 package com.automizely.mvp.user
 
+import android.content.Intent
 import android.os.Bundle
 import com.automizely.framework.base.BaseMvpActivity
-import com.automizely.mvp.MyApplication
+import com.automizely.login.LoginActivity
 import com.automizely.mvp.databinding.LayoutActivityUserBinding
 import com.automizely.mvp.user.contract.UserContract
 import com.automizely.mvp.user.contract.UserContract2
@@ -41,8 +42,7 @@ class UserActivity : BaseMvpActivity(), UserContract.IUserView, UserContract2.IU
     }
 
     private fun toLogin() {
-        //todo 简单写个跨模块的调用
-        (application as MyApplication).startLoginActivity(this)
+        startActivity(Intent(this, LoginActivity::class.java))
     }
 
     private fun loadUsers() {

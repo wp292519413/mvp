@@ -1,10 +1,7 @@
 package com.automizely.mvp
 
-import android.app.Activity
 import android.app.Application
-import android.content.Intent
 import android.util.Log
-import com.automizely.login.LoginActivity
 import com.automizely.login.di.loginModule
 import com.automizely.mvp.di.appModule
 import io.reactivex.plugins.RxJavaPlugins
@@ -45,11 +42,6 @@ class MyApplication : Application() {
         RxJavaPlugins.setErrorHandler { t ->
             Log.d("tag", "RxJavaPlugins ErrorHandler: $t")
         }
-    }
-
-    //todo 简单写个跨模块的调用
-    fun startLoginActivity(activity: Activity) {
-        activity.startActivity(Intent(activity, LoginActivity::class.java))
     }
 
 }
