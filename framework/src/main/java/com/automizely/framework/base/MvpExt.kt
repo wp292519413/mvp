@@ -7,7 +7,7 @@ import java.lang.reflect.Method
 /**
  * 将presenter与view层绑定
  */
-fun BaseMvpView.attachPresenter() {
+internal fun BaseMvpView.attachPresenter() {
     val t1 = System.currentTimeMillis()
     //java反射绑定-冷启动5ms左右
     //注意:这里的耗时主要是花在了初始化lazy属性上,和反射本身没有太大关系
