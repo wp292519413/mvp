@@ -1,6 +1,8 @@
 package com.automizely.mvp.user.presenter
 
+import com.automizely.framework.rx.AbsSingleObserver
 import com.automizely.mvp.user.contract.UserContract
+import com.automizely.mvp.user.model.User
 import com.automizely.mvp.user.model.UserModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -17,15 +19,19 @@ class UserPresenter : UserContract.AbsUserPresenter() {
     private val userModel: UserModel by inject()
 
     override fun loadUser() {
-        val disposable = userModel.loadUser()
+        userModel.loadUser()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ user ->
-                view.onLoadUserSuccess(user)
-            }, { t ->
-                view.onLoadUserFail(t)
+            .compose(bindUntilDetach())
+            .subscribe(object : AbsSingleObserver<User>() {
+                override fun onSuccess(data: User) {
+                    view.onLoadUserSuccess(data)
+                }
+
+                override fun onError(t: Throwable) {
+                    view.onLoadUserFail(t)
+                }
             })
-        addDisposable(disposable)
     }
 
 }

@@ -36,11 +36,15 @@ android {
 
 dependencies {
     api fileTree(dir: "libs", include: ["*.jar"])
-    api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     api "androidx.core:core-ktx:$core_ktx_version"
     api "androidx.appcompat:appcompat:$appcompat_version"
     api "androidx.constraintlayout:constraintlayout:$constraintlayout_version"
+
+    //kotlin
+    api "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutine_version"
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
 
     //koin
     api "org.koin:koin-android:$koin_version"
@@ -49,7 +53,12 @@ dependencies {
     api "org.koin:koin-androidx-fragment:$koin_version"
     api "org.koin:koin-androidx-ext:$koin_version"
 
-    //rxJava
-    api "io.reactivex.rxjava2:rxjava:$rxjava_version"
-    api "io.reactivex.rxjava2:rxandroid:$rxandroid_version"
+    //rx
+    //api "io.reactivex.rxjava2:rxjava:$rxjava_version"
+    //api "io.reactivex.rxjava2:rxandroid:$rxandroid_version"
+    //这个库包含了rxjava,rxandroid,rxlifecycle,rxlifecycle-android-lifecycle
+    api "com.trello.rxlifecycle3:rxlifecycle-components:$rxlifecycle_version"
+
+    //EventBus
+    api "org.greenrobot:eventbus:$event_bus_version"
 }

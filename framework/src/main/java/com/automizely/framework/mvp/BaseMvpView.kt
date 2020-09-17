@@ -1,4 +1,4 @@
-package com.automizely.framework.base
+package com.automizely.framework.mvp
 
 import androidx.lifecycle.Lifecycle
 

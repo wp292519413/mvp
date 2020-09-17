@@ -1,7 +1,7 @@
 package com.automizely.mvp.user.contract
 
-import com.automizely.framework.base.BaseMvpPresenter
-import com.automizely.framework.base.BaseMvpView
+import com.automizely.framework.mvp.BaseMvpPresenter
+import com.automizely.framework.mvp.BaseMvpView
 
 /**
  * @author: wangpan

@@ -2,7 +2,7 @@ package com.automizely.login
 
 import android.os.Bundle
 import android.util.Log
-import com.automizely.framework.base.BaseMvpActivity
+import com.automizely.framework.mvp.BaseMvpActivity
 import com.automizely.login.contract.LoginContract
 import com.automizely.login.databinding.LayoutActivityLoginBinding
 import com.automizely.login.presenter.LoginPresenter

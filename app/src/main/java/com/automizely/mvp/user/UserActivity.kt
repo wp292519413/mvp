@@ -2,7 +2,7 @@ package com.automizely.mvp.user
 
 import android.content.Intent
 import android.os.Bundle
-import com.automizely.framework.base.BaseMvpActivity
+import com.automizely.framework.mvp.BaseMvpActivity
 import com.automizely.login.LoginActivity
 import com.automizely.mvp.databinding.LayoutActivityUserBinding
 import com.automizely.mvp.user.contract.UserContract
