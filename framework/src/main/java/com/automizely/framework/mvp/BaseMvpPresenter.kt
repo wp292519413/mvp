@@ -154,7 +154,10 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
 
     private fun detach() {
         getLifecycle()?.removeObserver(this)
-        viewRefs?.clear()
+        viewRefs?.let {
+            it.clear()
+            viewRefs = null
+        }
         clearDisposable()
         cancelCoroutineJob()
         onDetached()
