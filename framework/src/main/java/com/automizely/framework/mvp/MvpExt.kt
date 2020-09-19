@@ -12,7 +12,7 @@ internal fun BaseMvpView.attachPresenter() {
     //java反射绑定-冷启动5ms左右
     //注意:这里的耗时主要是花在了初始化lazy属性上,和反射本身没有太大关系
     javaClass.declaredFields
-        .filter { it.isPresenterField() }
+        .filter { isPresenterField(it) }
         .forEach {
             val presenter = it.getFieldValue(this) as? BaseMvpPresenter<*>
                 ?: throw NullPointerException("$this $it must not be null!")
@@ -42,13 +42,13 @@ private fun Field.getFieldValue(obj: Any): Any? {
 /**
  * 判断是否是presenter类型的字段
  */
-private fun Field.isPresenterField(): Boolean {
-    return if (type == Lazy::class.java) {
+private fun isPresenterField(field: Field): Boolean {
+    return if (field.type == Lazy::class.java) {
         //Lazy类型的字段(延迟初始化类型)
-        isLazyPresenterField(this)
+        isLazyPresenterField(field)
     } else {
         //常规类型字段
-        isPresenterType(type)
+        isPresenterType(field.type)
     }
 }
 
