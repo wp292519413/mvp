@@ -104,6 +104,10 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
         return findViewInterfaceClass(javaClass)
     }
 
+    private fun getRealView(): V? {
+        return viewRefs?.get()
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun createProxyView(): V {
         //通过presenter的父类获取view的接口类型
@@ -116,20 +120,20 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
             if (method.declaringClass == Object::class.java) {
                 return@invoke method.invoke(this, args)
             }
-            val viewInstance = this.viewRefs?.get()
-            if (viewInstance == null) {
+            val realView = getRealView()
+            if (realView == null) {
                 //view的真实引用被回收了(V层和P层解绑了或者界面被销毁了)
-                Log.w("tag", "$method viewRefs is null")
+                Log.w("tag", "$method realView is null")
                 return@invoke getDefaultReturnValue(method)
             }
-            if (!isStateActive()) {
+            if (!isViewActive()) {
                 //view的生命周期不合法
-                Log.w("tag", "$method lifecycle error")
+                Log.w("tag", "$method view state invalid")
                 return@invoke getDefaultReturnValue(method)
             }
             try {
                 //注意: 这里不能直接使用args,因为kotlin的数组类型和java的可变参不能通用
-                return@invoke method.invoke(viewInstance, *(args ?: arrayOfNulls<Any?>(0)))
+                return@invoke method.invoke(realView, *(args ?: arrayOfNulls<Any?>(0)))
             } catch (t: Throwable) {
                 Log.e("tag", "$method error: $t")
             }
@@ -140,19 +144,17 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
     @Suppress("UNCHECKED_CAST")
     fun <T : BaseMvpView> attach(view: T) {
         //检查view的实例有没有实现presenter关联的接口,一般都是忘了写..
-        val mvpView = view as? V ?: throw IllegalArgumentException(
+        val realView = view as? V ?: throw IllegalArgumentException(
             "$view not implements ${getViewInterfaceClass()}"
         )
-        this.viewRefs = WeakReference(mvpView)
-        mvpView.getLifecycle().addObserver(this)
+        this.viewRefs = WeakReference(realView)
+        realView.getLifecycle().addObserver(this)
         onAttached()
     }
 
     private fun detach() {
-        viewRefs?.let {
-            it.clear()
-            viewRefs = null
-        }
+        getLifecycle()?.removeObserver(this)
+        viewRefs?.clear()
         clearDisposable()
         cancelCoroutineJob()
         onDetached()
@@ -162,7 +164,7 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
         return viewRefs?.get()?.getLifecycle()
     }
 
-    protected fun isStateActive(): Boolean {
+    protected fun isViewActive(): Boolean {
         return getLifecycle()?.currentState?.isAtLeast(Lifecycle.State.CREATED) ?: false
     }
 
