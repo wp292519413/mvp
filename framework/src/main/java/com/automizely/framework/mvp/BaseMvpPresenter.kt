@@ -20,6 +20,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.KoinComponent
 import java.lang.ref.WeakReference
+import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Proxy
@@ -29,16 +30,16 @@ import java.lang.reflect.Proxy
  * @emial: p.wang@aftership.com
  * @date: 2020/9/16
  *
- * 实现LifecycleEventObserver接口是为了监听宿主的生命周期
- * 实现KoinComponent是为了能在presenter中注入其它类,比如Model
- * 实现LifecycleProvider是为了在presenter中方便使用rx
+ * 实现 LifecycleEventObserver 接口是为了监听宿主的生命周期
+ * 实现 KoinComponent 是为了能在 presenter 中注入其它类,比如 model
+ * 实现 LifecycleProvider 是为了在 presenter 中方便使用 rx
  */
 abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinComponent,
     LifecycleProvider<ActivityEvent> {
 
     companion object {
         /**
-         * 以下基本数据类型因为存在拆装箱操作,所以在invoke方法中不能直接返回null,某则会发生类型转换异常
+         * 以下基本数据类型因为存在拆装箱操作,所以在 invoke 方法中不能直接返回 null,某则会发生类型转换异常
          */
         private val defaultValue: Map<Class<*>, Any?> by lazy {
             mutableMapOf<Class<*>, Any?>().apply {
@@ -50,6 +51,7 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
                 put(Float::class.java, Float.MIN_VALUE)
                 put(Double::class.java, Double.MIN_VALUE)
                 put(Boolean::class.java, false)
+                put(String::class.java, "")
             }
         }
 
@@ -59,20 +61,20 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
     }
 
     /**
-     * view的真实引用
+     * view 的真实引用
      */
-    private var viewRefs: WeakReference<V>? = null
+    private var realViewRefs: WeakReference<V>? = null
 
     /**
-     * view的代理实例
+     * view 的代理实例
      */
-    protected val view: V by lazy { createProxyView() }
+    protected lateinit var view: V
 
     @Volatile
     private var compositeDisposable: CompositeDisposable? = null
 
     /**
-     * 参考rxlifecycle3: https://github.com/trello/RxLifecycle
+     * 参考 rxlifecycle3: https://github.com/trello/RxLifecycle
      */
     private val lifecycleSubject = BehaviorSubject.create<ActivityEvent>()
 
@@ -80,7 +82,7 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
     private var scope: CoroutineScope? = null
 
     /**
-     * presenter的协程作用域,参考viewModelScope
+     * presenter 的协程作用域,参考 viewModelScope
      */
     protected val presenterScope: CoroutineScope
         get() {
@@ -89,94 +91,70 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
             }
         }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun findViewInterfaceClass(clazz: Class<*>): Class<V> {
-        val type = clazz.genericSuperclass
-            ?: throw IllegalAccessException("$clazz not found ParameterizedType for BaseMvpView")
-        return if (type is ParameterizedType) {
-            type.actualTypeArguments[0] as Class<V>
-        } else {
-            findViewInterfaceClass(type as Class<*>)
+    private val invocationHandler: InvocationHandler by lazy {
+        object : InvocationHandler {
+            override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? {
+                //如果 method 是定义在 Object 中的,那就执行常规调用
+                if (method.declaringClass == Object::class.java) {
+                    return method.invoke(this, args)
+                }
+                val realView = realViewRefs?.get()
+                //检查 view 的实例状态
+                if (realView == null || !realView.isActive()) {
+                    Log.w("tag", "$method view state invalid")
+                    return getDefaultReturnValue(method)
+                }
+                return try {
+                    //注意: 这里不能直接使用 args,因为 kotlin 的数组类型和 java 的可变参不能通用
+                    method.invoke(realView, *(args ?: arrayOfNulls<Any?>(0)))
+                } catch (t: Throwable) {
+                    Log.e("tag", "$method error: $t")
+                    getDefaultReturnValue(method)
+                }
+            }
         }
-    }
-
-    private fun getViewInterfaceClass(): Class<V> {
-        return findViewInterfaceClass(javaClass)
-    }
-
-    private fun getRealView(): V? {
-        return viewRefs?.get()
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun createProxyView(): V {
-        //通过presenter的父类获取view的接口类型
-        val viewInterfaceClass = getViewInterfaceClass()
-        return Proxy.newProxyInstance(
-            javaClass.classLoader,
-            arrayOf(viewInterfaceClass)
-        ) invoke@{ _, method, args ->
-            //如果method是定义在Object中的,那就执行常规调用
-            if (method.declaringClass == Object::class.java) {
-                return@invoke method.invoke(this, args)
-            }
-            val realView = getRealView()
-            if (realView == null) {
-                //view的真实引用被回收了(V层和P层解绑了或者界面被销毁了)
-                Log.w("tag", "$method realView is null")
-                return@invoke getDefaultReturnValue(method)
-            }
-            if (!isViewActive()) {
-                //view的生命周期不合法
-                Log.w("tag", "$method view state invalid")
-                return@invoke getDefaultReturnValue(method)
-            }
-            try {
-                //注意: 这里不能直接使用args,因为kotlin的数组类型和java的可变参不能通用
-                return@invoke method.invoke(realView, *(args ?: arrayOfNulls<Any?>(0)))
-            } catch (t: Throwable) {
-                Log.e("tag", "$method error: $t")
-            }
-            return@invoke getDefaultReturnValue(method)
-        } as V
     }
 
     @Suppress("UNCHECKED_CAST")
     fun <T : BaseMvpView> attach(view: T) {
-        //检查view的实例有没有实现presenter关联的接口,一般都是忘了写..
-        val realView = view as? V ?: throw IllegalArgumentException(
-            "$view not implements ${getViewInterfaceClass()}"
-        )
-        this.viewRefs = WeakReference(realView)
+        //从 presenter 的类定义中获取 view 的类型
+        val viewClass = findViewClassFromPresenterClass()
+        //检查 view 的实例有没有实现 presenter 定义的 view 接口
+        if (!viewClass.isAssignableFrom(view.javaClass)) {
+            throw IllegalArgumentException("$view not implements $viewClass")
+        }
+        val realView = view as V
+        //保存 view 的引用
+        this.realViewRefs = WeakReference(realView)
+        //创建 view 的代理对象
+        this.view = Proxy.newProxyInstance(viewClass.classLoader, arrayOf(viewClass), invocationHandler) as V
+        //监听 view 的生命周期
         realView.getLifecycle().addObserver(this)
         onAttached()
     }
 
+    @Suppress("UNCHECKED_CAST")
+    private fun findViewClassFromPresenterClass(): Class<V> {
+        var absPresenterClass = this.javaClass.superclass!!
+        while (absPresenterClass.superclass != BaseMvpPresenter::class.java) {
+            absPresenterClass = absPresenterClass.superclass!!
+        }
+        val type = absPresenterClass.genericSuperclass as ParameterizedType
+        return type.actualTypeArguments[0] as Class<V>
+    }
+
     private fun detach() {
-        getLifecycle()?.removeObserver(this)
-        viewRefs?.let {
-            it.clear()
-            viewRefs = null
+        realViewRefs?.get()?.let {
+            it.getLifecycle().removeObserver(this)
+            realViewRefs?.clear()
+            realViewRefs = null
         }
         clearDisposable()
         cancelCoroutineJob()
         onDetached()
     }
 
-    protected fun getLifecycle(): Lifecycle? {
-        return viewRefs?.get()?.getLifecycle()
-    }
-
-    protected fun isViewActive(): Boolean {
-        return getLifecycle()?.currentState?.isAtLeast(Lifecycle.State.CREATED) ?: false
-    }
-
-    protected fun getCurrentState(): Lifecycle.State {
-        return getLifecycle()?.currentState ?: Lifecycle.State.DESTROYED
-    }
-
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        Log.d("tag", "onStateChanged: $this $event")
         when (event) {
             Lifecycle.Event.ON_CREATE -> {
                 lifecycleSubject.onNext(ActivityEvent.CREATE)

@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# 下面的配置可以避免混淆优化空方法的接口(BaseMvpPresenter中有逻辑需要从泛型中获取view的类型)
+-keep interface * implements com.automizely.framework.mvp.BaseMvpView
+-keep class * implements com.automizely.framework.mvp.BaseMvpView

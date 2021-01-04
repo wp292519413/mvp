@@ -21,9 +21,9 @@ class UserPresenter2 : UserContract2.AbsUserPresenter2() {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ user ->
-                //todo 1
+                view.onLoadUser2Success(user)
             }, { t ->
-                //todo 2
+                view.onLoadUser2Fail(t)
             })
         addDisposable(disposable)
     }

@@ -2,6 +2,7 @@ package com.automizely.mvp.user.contract
 
 import com.automizely.framework.mvp.BaseMvpPresenter
 import com.automizely.framework.mvp.BaseMvpView
+import com.automizely.mvp.user.model.User
 
 /**
  * @author: wangpan
@@ -11,6 +12,10 @@ import com.automizely.framework.mvp.BaseMvpView
 interface UserContract2 {
 
     interface IUserView2 : BaseMvpView {
+
+        fun onLoadUser2Success(user: User)
+
+        fun onLoadUser2Fail(t: Throwable)
 
     }
 

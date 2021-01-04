@@ -1,28 +1,27 @@
 package com.automizely.login
 
 import android.os.Bundle
-import android.util.Log
 import com.automizely.framework.mvp.BaseMvpActivity
+import com.automizely.framework.mvp.injectPresenter
 import com.automizely.login.contract.LoginContract
 import com.automizely.login.databinding.LayoutActivityLoginBinding
 import com.automizely.login.presenter.LoginPresenter
-import org.koin.android.ext.android.inject
 
 class LoginActivity : BaseMvpActivity(), LoginContract.ILoginView {
 
     private val viewBinding: LayoutActivityLoginBinding by lazy {
         LayoutActivityLoginBinding.inflate(layoutInflater)
     }
-    private val loginPresenter: LoginPresenter by inject()
+
+    //使用 koin 注入 presenter 并自动和 V 层绑定
+    private val loginPresenter: LoginPresenter by injectPresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
 
         viewBinding.run {
-            btnLogin.setOnClickListener {
-                login()
-            }
+            btnLogin.setOnClickListener { login() }
         }
     }
 
@@ -32,12 +31,10 @@ class LoginActivity : BaseMvpActivity(), LoginContract.ILoginView {
     }
 
     override fun onLoginSuccess(token: String) {
-        Log.e("tag", "onLoginSuccess: $token")
         viewBinding.tvTest.text = token
     }
 
     override fun onLoginFail(t: Throwable) {
-        Log.e("tag", "onLoginFail: $t")
         viewBinding.tvTest.text = "登录失败"
     }
 }

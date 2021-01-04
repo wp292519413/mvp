@@ -3,6 +3,7 @@ package com.automizely.mvp.user
 import android.content.Intent
 import android.os.Bundle
 import com.automizely.framework.mvp.BaseMvpActivity
+import com.automizely.framework.mvp.injectPresenter
 import com.automizely.login.LoginActivity
 import com.automizely.mvp.databinding.LayoutActivityUserBinding
 import com.automizely.mvp.user.contract.UserContract
@@ -10,7 +11,6 @@ import com.automizely.mvp.user.contract.UserContract2
 import com.automizely.mvp.user.model.User
 import com.automizely.mvp.user.presenter.UserPresenter
 import com.automizely.mvp.user.presenter.UserPresenter2
-import org.koin.android.ext.android.inject
 
 /**
  * @author: wangpan
@@ -23,21 +23,19 @@ class UserActivity : BaseMvpActivity(), UserContract.IUserView, UserContract2.IU
         LayoutActivityUserBinding.inflate(layoutInflater)
     }
 
-    //通过注入依赖presenter
-    private val userPresenter: UserPresenter by inject()
-    private val userPresenter2: UserPresenter2 by inject()
+    //使用 koin 注入 presenter 并自动和 V 层绑定
+    private val userPresenter: UserPresenter by injectPresenter()
+
+    //使用 koin 注入 presenter 并自动和 V 层绑定
+    private val userPresenter2: UserPresenter2 by injectPresenter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
 
         viewBinding.run {
-            btnTest.setOnClickListener {
-                loadUsers()
-            }
-            btnLogin.setOnClickListener {
-                toLogin()
-            }
+            btnTest.setOnClickListener { loadUsers() }
+            btnLogin.setOnClickListener { toLogin() }
         }
     }
 
@@ -47,6 +45,7 @@ class UserActivity : BaseMvpActivity(), UserContract.IUserView, UserContract2.IU
 
     private fun loadUsers() {
         viewBinding.tvTest.text = "加载中.."
+        viewBinding.tvTest2.text = "加载中.."
         userPresenter.loadUser()
         userPresenter2.loadUser()
     }
@@ -57,6 +56,14 @@ class UserActivity : BaseMvpActivity(), UserContract.IUserView, UserContract2.IU
 
     override fun onLoadUserFail(t: Throwable) {
         viewBinding.tvTest.text = t.message
+    }
+
+    override fun onLoadUser2Success(user: User) {
+        viewBinding.tvTest2.text = user.toString()
+    }
+
+    override fun onLoadUser2Fail(t: Throwable) {
+        viewBinding.tvTest2.text = t.message
     }
 
 }
