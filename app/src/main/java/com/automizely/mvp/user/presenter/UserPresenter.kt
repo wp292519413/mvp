@@ -1,10 +1,11 @@
 package com.automizely.mvp.user.presenter
 
-import com.automizely.framework.rx.AbsSingleObserver
 import com.automizely.mvp.user.contract.UserContract
 import com.automizely.mvp.user.model.User
 import com.automizely.mvp.user.model.UserModel
+import io.reactivex.SingleObserver
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import org.koin.core.inject
 
@@ -18,18 +19,25 @@ class UserPresenter : UserContract.AbsUserPresenter() {
     //通过注入依赖model
     private val userModel: UserModel by inject()
 
-    override fun loadUser() {
-        userModel.loadUser()
+    override fun login(name: String, pwd: String) {
+        if (name.isEmpty() || pwd.isEmpty()) {
+            view.onLoginFail("用户名或者密码不能为空")
+            return
+        }
+        userModel.login(name, pwd)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .compose(bindUntilDetach())
-            .subscribe(object : AbsSingleObserver<User>() {
-                override fun onSuccess(data: User) {
-                    view.onLoadUserSuccess(data)
+            .subscribe(object : SingleObserver<User> {
+                override fun onSubscribe(d: Disposable) {
+                    addDisposable(d)
+                }
+
+                override fun onSuccess(user: User) {
+                    view.onLoginSuccess(user)
                 }
 
                 override fun onError(t: Throwable) {
-                    view.onLoadUserFail(t)
+                    view.onLoginFail(t.message ?: "未知错误")
                 }
             })
     }

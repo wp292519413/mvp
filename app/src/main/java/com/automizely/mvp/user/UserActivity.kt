@@ -1,10 +1,14 @@
 package com.automizely.mvp.user
 
-import android.content.Intent
+import android.app.AlertDialog
+import android.app.Dialog
 import android.os.Bundle
+import android.widget.EditText
+import android.widget.Toast
+import androidx.core.widget.doOnTextChanged
 import com.automizely.framework.mvp.BaseMvpActivity
+import com.automizely.framework.mvp.getPresenter
 import com.automizely.framework.mvp.injectPresenter
-import com.automizely.login.LoginActivity
 import com.automizely.mvp.databinding.LayoutActivityUserBinding
 import com.automizely.mvp.user.contract.UserContract
 import com.automizely.mvp.user.contract.UserContract2
@@ -23,47 +27,92 @@ class UserActivity : BaseMvpActivity(), UserContract.IUserView, UserContract2.IU
         LayoutActivityUserBinding.inflate(layoutInflater)
     }
 
-    //使用 koin 注入 presenter 并自动和 V 层绑定
+    //懒加载形式注入 presenter
     private val userPresenter: UserPresenter by injectPresenter()
 
-    //使用 koin 注入 presenter 并自动和 V 层绑定
-    private val userPresenter2: UserPresenter2 by injectPresenter()
+    //同步获取 presenter
+    private val userPresenter2: UserPresenter2 = getPresenter()
+
+    private var dialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(viewBinding.root)
 
         viewBinding.run {
-            btnTest.setOnClickListener { loadUsers() }
-            btnLogin.setOnClickListener { toLogin() }
+            btnLogin.isEnabled = false
+            btnLogin2.isEnabled = false
+            etName.doOnTextChanged { _, _, _, _ ->
+                btnLogin.isEnabled = !etName.isEmpty() && !etPwd.isEmpty()
+                btnLogin2.isEnabled = !etName.isEmpty() && !etPwd.isEmpty()
+            }
+            etPwd.doOnTextChanged { _, _, _, _ ->
+                btnLogin.isEnabled = !etName.isEmpty() && !etPwd.isEmpty()
+                btnLogin2.isEnabled = !etName.isEmpty() && !etPwd.isEmpty()
+            }
+            btnLogin.setOnClickListener {
+                showLoading("登录中..")
+                userPresenter.login(etName.getString(), etPwd.getString())
+            }
+            btnLogin2.setOnClickListener {
+                showLoading("登录中..")
+                userPresenter2.login2(etName.getString(), etPwd.getString())
+            }
         }
     }
 
-    private fun toLogin() {
-        startActivity(Intent(this, LoginActivity::class.java))
+    private fun EditText.getString(): String {
+        return text?.toString()?.trim() ?: ""
     }
 
-    private fun loadUsers() {
-        viewBinding.tvTest.text = "加载中.."
-        viewBinding.tvTest2.text = "加载中.."
-        userPresenter.loadUser()
-        userPresenter2.loadUser()
+    private fun EditText.isEmpty(): Boolean {
+        return getString().isEmpty()
     }
 
-    override fun onLoadUserSuccess(user: User) {
-        viewBinding.tvTest.text = user.toString()
+    private fun showLoading(msg: String) {
+        dialog = AlertDialog.Builder(this)
+            .setMessage(msg)
+            .show()
     }
 
-    override fun onLoadUserFail(t: Throwable) {
-        viewBinding.tvTest.text = t.message
+    private fun dismissLoading() {
+        dialog?.dismiss()
+        dialog = null
     }
 
-    override fun onLoadUser2Success(user: User) {
-        viewBinding.tvTest2.text = user.toString()
+    override fun onLoginSuccess(user: User) {
+        dismissLoading()
+        viewBinding.etPwd.run {
+            setText("")
+            setSelection(0)
+        }
+        Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show()
     }
 
-    override fun onLoadUser2Fail(t: Throwable) {
-        viewBinding.tvTest2.text = t.message
+    override fun onLoginFail(msg: String) {
+        dismissLoading()
+        viewBinding.etPwd.run {
+            setText("")
+            setSelection(0)
+        }
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 
+    override fun onLoginSuccess2(user: User) {
+        dismissLoading()
+        viewBinding.etPwd.run {
+            setText("")
+            setSelection(0)
+        }
+        Toast.makeText(this, "登录成功", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onLoginFail2(msg: String) {
+        dismissLoading()
+        viewBinding.etPwd.run {
+            setText("")
+            setSelection(0)
+        }
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+    }
 }

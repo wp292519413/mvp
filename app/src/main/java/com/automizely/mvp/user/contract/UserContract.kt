@@ -13,15 +13,15 @@ interface UserContract {
 
     interface IUserView : BaseMvpView {
 
-        fun onLoadUserSuccess(user: User)
+        fun onLoginSuccess(user: User)
 
-        fun onLoadUserFail(t: Throwable)
+        fun onLoginFail(msg: String)
 
     }
 
     abstract class AbsUserPresenter : BaseMvpPresenter<IUserView>() {
 
-        abstract fun loadUser()
+        abstract fun login(name: String, pwd: String)
 
     }
 

@@ -37,38 +37,15 @@ import java.lang.reflect.Proxy
 abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinComponent,
     LifecycleProvider<ActivityEvent> {
 
-    companion object {
-        /**
-         * 以下基本数据类型因为存在拆装箱操作,所以在 invoke 方法中不能直接返回 null,某则会发生类型转换异常
-         */
-        private val defaultValue: Map<Class<*>, Any?> by lazy {
-            mutableMapOf<Class<*>, Any?>().apply {
-                put(Byte::class.java, Byte.MIN_VALUE)
-                put(Short::class.java, Short.MIN_VALUE)
-                put(Char::class.java, Char.MIN_VALUE)
-                put(Int::class.java, Int.MIN_VALUE)
-                put(Long::class.java, Long.MIN_VALUE)
-                put(Float::class.java, Float.MIN_VALUE)
-                put(Double::class.java, Double.MIN_VALUE)
-                put(Boolean::class.java, false)
-                put(String::class.java, "")
-            }
-        }
-
-        private fun getDefaultReturnValue(method: Method): Any? {
-            return defaultValue[method.returnType]
-        }
-    }
-
     /**
      * view 的真实引用
      */
     private var realViewRefs: WeakReference<V>? = null
 
     /**
-     * view 的代理实例
+     * view 的代理实例,业务层访问的都是代理 view 的实例
      */
-    protected lateinit var view: V
+    protected val view: V by lazy { createProxyView() }
 
     @Volatile
     private var compositeDisposable: CompositeDisposable? = null
@@ -79,20 +56,34 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
     private val lifecycleSubject = BehaviorSubject.create<ActivityEvent>()
 
     @Volatile
-    private var scope: CoroutineScope? = null
+    private var coroutineScope: CoroutineScope? = null
 
     /**
      * presenter 的协程作用域,参考 viewModelScope
      */
     protected val presenterScope: CoroutineScope
         get() {
-            return scope ?: synchronized(this) {
-                scope ?: CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+            return coroutineScope ?: synchronized(this) {
+                coroutineScope ?: CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
             }
         }
 
-    private val invocationHandler: InvocationHandler by lazy {
-        object : InvocationHandler {
+    @Suppress("UNCHECKED_CAST")
+    fun <T : BaseMvpView> attach(view: T) {
+        //正常情况 view 是能强制转成 V 类型的,如果强转失败通常是因为 view 没有实现对应的接口
+        val realView: V = (view as? V)
+            ?: throw IllegalArgumentException("$view not implement ${findViewClassFromPresenterClass()}")
+        //保存 view 的引用
+        realViewRefs = WeakReference(realView)
+        //监听 view 的生命周期
+        realView.getLifecycle().addObserver(this)
+        onAttached()
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun createProxyView(): V {
+        val viewClass = findViewClassFromPresenterClass()
+        return Proxy.newProxyInstance(viewClass.classLoader, arrayOf(viewClass), object : InvocationHandler {
             override fun invoke(proxy: Any, method: Method, args: Array<out Any>?): Any? {
                 //如果 method 是定义在 Object 中的,那就执行常规调用
                 if (method.declaringClass == Object::class.java) {
@@ -112,25 +103,7 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
                     getDefaultReturnValue(method)
                 }
             }
-        }
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T : BaseMvpView> attach(view: T) {
-        //从 presenter 的类定义中获取 view 的类型
-        val viewClass = findViewClassFromPresenterClass()
-        //检查 view 的实例有没有实现 presenter 定义的 view 接口
-        if (!viewClass.isAssignableFrom(view.javaClass)) {
-            throw IllegalArgumentException("$view not implements $viewClass")
-        }
-        val realView = view as V
-        //保存 view 的引用
-        this.realViewRefs = WeakReference(realView)
-        //创建 view 的代理对象
-        this.view = Proxy.newProxyInstance(viewClass.classLoader, arrayOf(viewClass), invocationHandler) as V
-        //监听 view 的生命周期
-        realView.getLifecycle().addObserver(this)
-        onAttached()
+        }) as V
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -228,7 +201,7 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
      * 取消协程调度
      */
     private fun cancelCoroutineJob() {
-        val scope = this.scope ?: return
+        val scope = this.coroutineScope ?: return
         val job = scope.coroutineContext[Job]
         if (job == null) {
             Log.e("tag", "Scope cannot be cancelled because it does not have a job: $scope")
@@ -254,6 +227,29 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
 
     fun <T> bindUntilDetach(): LifecycleTransformer<T> {
         return RxLifecycle.bindUntilEvent(lifecycleSubject, ActivityEvent.DESTROY)
+    }
+
+    companion object {
+        /**
+         * 以下基本数据类型因为存在拆装箱操作,所以在 invoke 方法中不能直接返回 null,某则会发生类型转换异常
+         */
+        private val defaultValue: Map<Class<*>, Any?> by lazy {
+            mutableMapOf<Class<*>, Any?>().apply {
+                put(Byte::class.java, Byte.MIN_VALUE)
+                put(Short::class.java, Short.MIN_VALUE)
+                put(Char::class.java, Char.MIN_VALUE)
+                put(Int::class.java, Int.MIN_VALUE)
+                put(Long::class.java, Long.MIN_VALUE)
+                put(Float::class.java, Float.MIN_VALUE)
+                put(Double::class.java, Double.MIN_VALUE)
+                put(Boolean::class.java, false)
+                put(String::class.java, "")
+            }
+        }
+
+        private fun getDefaultReturnValue(method: Method): Any? {
+            return defaultValue[method.returnType]
+        }
     }
 
 }

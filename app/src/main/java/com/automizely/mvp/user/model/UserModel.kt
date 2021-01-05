@@ -10,13 +10,13 @@ import java.io.IOException
  */
 class UserModel {
 
-    fun loadUser(): Single<User> {
-        return Single.create<User> { emitter ->
-            Thread.sleep(2000)
-            if (System.currentTimeMillis() % 2 == 0L) {
+    fun login(name: String, pwd: String): Single<User> {
+        return Single.create { emitter ->
+            Thread.sleep(1000)
+            if (name == "zhangsan" && pwd == "123") {
                 emitter.onSuccess(User("111", "张三"))
             } else {
-                emitter.onError(IOException("接口错误"))
+                emitter.onError(IOException("用户名或者密码错误"))
             }
         }
     }

@@ -10,15 +10,7 @@ import io.reactivex.disposables.Disposable
  */
 abstract class AbsSingleObserver<T> : SingleObserver<T> {
 
-    override fun onSuccess(data: T) {
-
-    }
-
     override fun onSubscribe(d: Disposable) {
-
-    }
-
-    override fun onError(t: Throwable) {
 
     }
 }

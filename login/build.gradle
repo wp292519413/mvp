@@ -1,6 +1,8 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
+
+//单元测试
+apply from: '../test_build.gradle'
 
 android {
     compileSdkVersion 29
@@ -11,14 +13,23 @@ android {
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        debugTest {
+            initWith debug
+            //打开生成覆盖率开关 不能开启混淆代码
+            testCoverageEnabled true
         }
     }
 
@@ -31,16 +42,12 @@ android {
         jvmTarget = "1.8"
     }
 
-    viewBinding {
-        enabled = true
+    buildFeatures {
+        viewBinding true
     }
 }
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation project(":framework")
-
-    testImplementation 'junit:junit:4.13'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 }

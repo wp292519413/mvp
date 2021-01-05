@@ -1,7 +1,6 @@
 package com.automizely.framework.rx
 
 import io.reactivex.Observer
-import io.reactivex.disposables.Disposable
 
 /**
  * @author: wangpan
@@ -10,19 +9,4 @@ import io.reactivex.disposables.Disposable
  */
 abstract class AbsObserver<T> : Observer<T> {
 
-    override fun onComplete() {
-
-    }
-
-    override fun onSubscribe(d: Disposable) {
-
-    }
-
-    override fun onNext(data: T) {
-
-    }
-
-    override fun onError(t: Throwable) {
-
-    }
 }

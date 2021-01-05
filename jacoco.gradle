@@ -1,0 +1,47 @@
+apply plugin: 'jacoco'
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+}
+
+ext {
+    getFileFilter = { ->
+        def jacocoSkipClasses = null
+        if (project.hasProperty('jacocoSkipClasses')) {
+            jacocoSkipClasses = project.property('jacocoSkipClasses')
+        }
+
+        def fileFilter = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', 'android/**/*.*']
+        if (jacocoSkipClasses != null) {
+            fileFilter.addAll(jacocoSkipClasses)
+        }
+
+        return fileFilter
+    }
+}
+
+task jacocoCoverageTestReport(type: JacocoReport, dependsOn: ['testDebugTestUnitTest', 'createDebugTestCoverageReport']) {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
+    //不需要检测的文件列表
+    def fileFilter = project.getFileFilter()
+    //旧版本Gradle生成的class目录
+    def classDirOldGradle = fileTree(dir: "$project.buildDir/intermediates/classes/debugTest", excludes: fileFilter)
+    //新版本Gradle生成的class目录 (gradle 5.4.1+)
+    def classDirNewGradle = fileTree(dir: "$project.buildDir/intermediates/javac/debugTest/classes", excludes: fileFilter)
+    def mainSrc = "$project.projectDir/src/main/java"
+
+    //设置需要检测覆盖率的目录
+    def sourceDirectories = files([mainSrc])
+    getSourceDirectories().setFrom(sourceDirectories)
+    def classDirectories = files([classDirOldGradle, classDirNewGradle])
+    getClassDirectories().setFrom(classDirectories)
+    //存储APP运行时产生报告的路径
+    def executionData = fileTree(dir: project.buildDir, includes: [
+            'jacoco/testDebugTestUnitTest.exec', 'outputs/code-coverage/connected/*coverage.ec'
+    ])
+    getExecutionData().setFrom(executionData)
+}
