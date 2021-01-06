@@ -2,6 +2,7 @@ package com.automizely.mvp.user
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Intent
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.Toast
@@ -10,6 +11,7 @@ import com.automizely.framework.mvp.BaseMvpActivity
 import com.automizely.framework.mvp.getPresenter
 import com.automizely.framework.mvp.injectPresenter
 import com.automizely.mvp.databinding.LayoutActivityUserBinding
+import com.automizely.mvp.java.JavaDemoActivity
 import com.automizely.mvp.user.contract.UserContract
 import com.automizely.mvp.user.contract.UserContract2
 import com.automizely.mvp.user.model.User
@@ -57,6 +59,10 @@ class UserActivity : BaseMvpActivity(), UserContract.IUserView, UserContract2.IU
             btnLogin2.setOnClickListener {
                 showLoading("登录中..")
                 userPresenter2.login2(etName.getString(), etPwd.getString())
+            }
+            btnJava.setOnClickListener {
+                //跳转 Java demo activity
+                startActivity(Intent(this@UserActivity, JavaDemoActivity::class.java))
             }
         }
     }

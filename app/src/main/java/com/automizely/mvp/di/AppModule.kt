@@ -1,18 +1,30 @@
 package com.automizely.mvp.di
 
-import com.automizely.mvp.home.di.homeModule
-import com.automizely.mvp.user.di.userModule
+import com.automizely.mvp.java.di.JavaDemoModule
+import com.automizely.mvp.java.presenter.JavaDemoPresenter
+import com.automizely.mvp.user.model.UserModel
+import com.automizely.mvp.user.presenter.UserPresenter
+import com.automizely.mvp.user.presenter.UserPresenter2
+import org.koin.dsl.module
 
-/**
- * @author: wangpan
- * @emial: p.wang@aftership.com
- * @date: 2020/9/16
- *
- * app模块所有的注入放在这(个人觉得每个不同的小模块分开放会比较好)
- */
+//user 模块
+val userModule = module {
+    factory { UserPresenter() }
+    factory { UserPresenter2() }
+    //model一般可以指定为单例的
+    single { UserModel() }
+}
+
+//java demo 模块
+val javaDemoModule = module {
+    factory { JavaDemoPresenter() }
+}
+
 val appModule = listOf(
     //user
     userModule,
-    //home
-    homeModule
+    //java demo
+    //javaDemoModule,
+    JavaDemoModule.javaDemoModule
 )
+

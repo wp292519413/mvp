@@ -18,7 +18,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import org.koin.core.Koin
 import org.koin.core.KoinComponent
+import org.koin.core.context.KoinContextHandler
 import java.lang.ref.WeakReference
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
@@ -179,6 +181,13 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
 
     protected open fun onLifecycleStateChanged(event: Lifecycle.Event) {
         //no op
+    }
+
+    /**
+     * 复写 KoinComponent 的 getKoin() 方法, 避免 Java 编写的 presenter 需要实现该方法
+     */
+    override fun getKoin(): Koin {
+        return KoinContextHandler.get()
     }
 
     @Synchronized

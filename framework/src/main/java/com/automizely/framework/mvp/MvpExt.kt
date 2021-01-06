@@ -30,3 +30,18 @@ inline fun <reified T : BaseMvpPresenter<*>> BaseMvpView.injectPresenter(
 ): Lazy<T> = lazy(LazyThreadSafetyMode.NONE) {
     getKoin().get<T>(qualifier, parameters).also { it.attach(this) }
 }
+
+object MvpExt {
+
+    @JvmStatic
+    @JvmOverloads
+    fun <P : BaseMvpPresenter<*>, V : BaseMvpView> getPresenter(
+        pClass: Class<P>,
+        view: V,
+        qualifier: Qualifier? = null,
+        parameters: ParametersDefinition? = null
+    ): P {
+        return getKoin().get<P>(pClass.kotlin, qualifier, parameters).also { it.attach(view) }
+    }
+
+}

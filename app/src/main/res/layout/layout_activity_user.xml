@@ -56,4 +56,12 @@
         android:layout_marginTop="20dp"
         android:text="登录2" />
 
+    <Button
+        android:id="@+id/btn_java"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="Java Demo"
+        android:textAllCaps="false" />
+
 </LinearLayout>

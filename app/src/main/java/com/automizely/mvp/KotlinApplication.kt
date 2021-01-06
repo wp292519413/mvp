@@ -8,14 +8,13 @@ import io.reactivex.plugins.RxJavaPlugins
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
-import org.koin.core.logger.Level
 
 /**
  * @author: wangpan
  * @emial: p.wang@aftership.com
  * @date: 2020/9/16
  */
-class MyApplication : Application() {
+class KotlinApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
@@ -26,11 +25,14 @@ class MyApplication : Application() {
     private fun initKoin() {
         startKoin {
             //日志
-            androidLogger(Level.DEBUG)
+            androidLogger()
             //将application注入到koin中
-            androidContext(this@MyApplication)
+            androidContext(this@KotlinApplication)
             //注册多个module,支持多个模块
-            modules(appModule + loginModule)
+            //modules(appModule + loginModule)
+            //修复 Koin 2.1.6 版本与 kotlin 1.4.0+ 版本的冲突问题
+            koin.loadModules(appModule + loginModule)
+            koin.createRootScope()
         }
     }
 
