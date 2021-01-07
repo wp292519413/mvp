@@ -7,10 +7,9 @@ import com.automizely.login.di.LoginModuleKt;
 import com.automizely.mvp.di.AppModuleKt;
 
 import org.koin.android.java.KoinAndroidApplication;
-import org.koin.core.Koin;
 import org.koin.core.KoinApplication;
-import org.koin.core.context.ContextFunctionsKt;
 import org.koin.core.context.GlobalContext;
+import org.koin.core.context.GlobalContextExtKt;
 import org.koin.core.logger.Level;
 import org.koin.core.module.Module;
 
@@ -37,11 +36,8 @@ public class JavaApplication extends Application {
         List<Module> modules = new ArrayList<>();
         modules.addAll(AppModuleKt.getAppModule());
         modules.add(LoginModuleKt.getLoginModule());
-        KoinApplication koinApplication = KoinAndroidApplication.create(this, Level.INFO);
-        Koin koin = koinApplication.getKoin();
-        koin.loadModules(modules);
-        koin.createRootScope();
-        ContextFunctionsKt.startKoin(new GlobalContext(), koinApplication);
+        KoinApplication koinApplication = KoinAndroidApplication.create(this, Level.INFO).modules(modules);
+        GlobalContextExtKt.startKoin(GlobalContext.INSTANCE, koinApplication);
     }
 
     private void setRxJavaErrorHandler() {

@@ -19,8 +19,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.Koin
-import org.koin.core.KoinComponent
-import org.koin.core.context.KoinContextHandler
+import org.koin.core.component.KoinApiExtension
+import org.koin.core.component.KoinComponent
+import org.koin.core.context.GlobalContext
 import java.lang.ref.WeakReference
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
@@ -36,6 +37,7 @@ import java.lang.reflect.Proxy
  * 实现 KoinComponent 是为了能在 presenter 中注入其它类,比如 model
  * 实现 LifecycleProvider 是为了在 presenter 中方便使用 rx
  */
+@OptIn(KoinApiExtension::class)
 abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinComponent,
     LifecycleProvider<ActivityEvent> {
 
@@ -187,7 +189,7 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
      * 复写 KoinComponent 的 getKoin() 方法, 避免 Java 编写的 presenter 需要实现该方法
      */
     override fun getKoin(): Koin {
-        return KoinContextHandler.get()
+        return GlobalContext.get()
     }
 
     @Synchronized

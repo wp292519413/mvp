@@ -7,7 +7,7 @@ import io.reactivex.SingleObserver
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
-import org.koin.core.inject
+import org.koin.core.component.inject
 
 /**
  * @author: wangpan

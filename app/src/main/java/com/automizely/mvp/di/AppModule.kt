@@ -1,6 +1,5 @@
 package com.automizely.mvp.di
 
-import com.automizely.mvp.java.di.JavaDemoModule
 import com.automizely.mvp.java.presenter.JavaDemoPresenter
 import com.automizely.mvp.user.model.UserModel
 import com.automizely.mvp.user.presenter.UserPresenter
@@ -24,7 +23,6 @@ val appModule = listOf(
     //user
     userModule,
     //java demo
-    //javaDemoModule,
-    JavaDemoModule.javaDemoModule
+    javaDemoModule,
 )
 

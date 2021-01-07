@@ -4,7 +4,7 @@ import com.automizely.login.contract.LoginContract
 import com.automizely.login.model.LoginModel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-import org.koin.core.inject
+import org.koin.core.component.inject
 
 /**
  * @author: wangpan

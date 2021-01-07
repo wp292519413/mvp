@@ -1,13 +1,13 @@
 package com.automizely.framework.mvp
 
-import org.koin.core.context.KoinContextHandler
+import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.ParametersDefinition
 import org.koin.core.qualifier.Qualifier
 
 /**
  * Get Koin context
  */
-fun getKoin() = KoinContextHandler.get()
+fun getKoin() = GlobalContext.get()
 
 /**
  * 使用 koin 注入 presenter 同时和 V 层绑定

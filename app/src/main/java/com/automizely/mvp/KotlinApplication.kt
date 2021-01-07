@@ -29,10 +29,7 @@ class KotlinApplication : Application() {
             //将application注入到koin中
             androidContext(this@KotlinApplication)
             //注册多个module,支持多个模块
-            //modules(appModule + loginModule)
-            //修复 Koin 2.1.6 版本与 kotlin 1.4.0+ 版本的冲突问题
-            koin.loadModules(appModule + loginModule)
-            koin.createRootScope()
+            modules(appModule + loginModule)
         }
     }
 
