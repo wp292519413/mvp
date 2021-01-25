@@ -12,7 +12,7 @@ class UserModel {
 
     fun login(name: String, pwd: String): Single<User> {
         return Single.create { emitter ->
-            Thread.sleep(1000)
+            Thread.sleep(3000)
             if (name == "zhangsan" && pwd == "123") {
                 emitter.onSuccess(User("111", "张三"))
             } else {

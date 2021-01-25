@@ -7,7 +7,7 @@ import android.os.Bundle
 import android.widget.EditText
 import android.widget.Toast
 import androidx.core.widget.doOnTextChanged
-import com.automizely.framework.mvp.BaseMvpActivity
+import com.automizely.framework.base.BaseMvpActivity
 import com.automizely.framework.mvp.getPresenter
 import com.automizely.framework.mvp.injectPresenter
 import com.automizely.mvp.databinding.LayoutActivityUserBinding
@@ -121,4 +121,5 @@ class UserActivity : BaseMvpActivity(), UserContract.IUserView, UserContract2.IU
         }
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
+
 }

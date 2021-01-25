@@ -5,6 +5,7 @@ import com.automizely.mvp.java.contract.JavaDemoContract;
 import com.automizely.mvp.user.model.User;
 import com.automizely.mvp.user.model.UserModel;
 
+import org.jetbrains.annotations.NotNull;
 import org.koin.java.KoinJavaComponent;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -20,6 +21,12 @@ import io.reactivex.schedulers.Schedulers;
 public class JavaDemoPresenter extends JavaDemoContract.AbsJavaDemoPresenter {
 
     private final UserModel mUserModel = KoinJavaComponent.get(UserModel.class);
+
+    @NotNull
+    @Override
+    protected EventBusState getEventBusState() {
+        return super.getEventBusState();
+    }
 
     @Override
     public void loadUser() {

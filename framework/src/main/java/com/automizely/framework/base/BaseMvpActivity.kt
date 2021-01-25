@@ -1,4 +1,4 @@
-package com.automizely.framework.mvp
+package com.automizely.framework.base
 
 import com.trello.rxlifecycle3.components.support.RxAppCompatActivity
 
@@ -7,6 +7,6 @@ import com.trello.rxlifecycle3.components.support.RxAppCompatActivity
  * @emial: p.wang@aftership.com
  * @date: 2020/9/16
  */
-abstract class BaseMvpActivity : RxAppCompatActivity(), BaseMvpView {
+abstract class BaseMvpActivity : RxAppCompatActivity() {
 
 }

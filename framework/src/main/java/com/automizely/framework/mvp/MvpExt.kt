@@ -1,5 +1,7 @@
 package com.automizely.framework.mvp
 
+import android.content.ComponentCallbacks
+import androidx.lifecycle.Lifecycle
 import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.ParametersDefinition
 import org.koin.core.qualifier.Qualifier
@@ -13,29 +15,41 @@ fun getKoin() = GlobalContext.get()
  * 使用 koin 注入 presenter 同时和 V 层绑定
  * 参考 ComponentCallbackExt.kt 中 ComponentCallbacks.get() 函数的实现
  */
-inline fun <reified T : BaseMvpPresenter<*>> BaseMvpView.getPresenter(
+inline fun <reified V : BaseMvpView, reified T : BaseMvpPresenter<V>> ComponentCallbacks.getPresenter(
     qualifier: Qualifier? = null,
     noinline parameters: ParametersDefinition? = null
 ): T {
-    return getKoin().get<T>(qualifier, parameters).also { it.attach(this) }
+    val view = this as V
+    return getKoin().get<T>(qualifier, parameters).also { it.attach(view) }
 }
 
 /**
  * 使用 koin 注入 presenter 同时和 V 层绑定
  * 参考 ComponentCallbackExt.kt 中 ComponentCallbacks.inject() 函数的实现
  */
-inline fun <reified T : BaseMvpPresenter<*>> BaseMvpView.injectPresenter(
+inline fun <reified V : BaseMvpView, reified T : BaseMvpPresenter<V>> ComponentCallbacks.injectPresenter(
     qualifier: Qualifier? = null,
     noinline parameters: ParametersDefinition? = null
 ): Lazy<T> = lazy(LazyThreadSafetyMode.NONE) {
-    getKoin().get<T>(qualifier, parameters).also { it.attach(this) }
+    val view = this as V
+    getKoin().get<T>(qualifier, parameters).also { it.attach(view) }
 }
+
+/**
+ * 用于判断 view 的生命周期是否处于活跃状态
+ */
+fun BaseMvpView.isActive(): Boolean = getLifecycle().currentState.isAtLeast(Lifecycle.State.CREATED)
+
+/**
+ * 获取 view 的当前生命周期状态
+ */
+fun BaseMvpView.getCurrentState(): Lifecycle.State = getLifecycle().currentState
 
 object MvpExt {
 
     @JvmStatic
     @JvmOverloads
-    fun <P : BaseMvpPresenter<*>, V : BaseMvpView> getPresenter(
+    fun <V : BaseMvpView, P : BaseMvpPresenter<V>> getPresenter(
         pClass: Class<P>,
         view: V,
         qualifier: Qualifier? = null,

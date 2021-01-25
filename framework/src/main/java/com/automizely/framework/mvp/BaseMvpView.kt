@@ -11,6 +11,4 @@ interface BaseMvpView {
 
     fun getLifecycle(): Lifecycle
 
-    fun isActive(): Boolean = getLifecycle().currentState.isAtLeast(Lifecycle.State.CREATED)
-
 }

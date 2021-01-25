@@ -1,6 +1,7 @@
 package com.automizely.framework.mvp
 
 import android.util.Log
+import androidx.annotation.CallSuper
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -44,15 +45,24 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
     /**
      * view 的真实引用
      */
-    private var realViewRefs: WeakReference<V>? = null
+    private var viewRefs: WeakReference<V>? = null
 
     /**
      * view 的代理实例,业务层访问的都是代理 view 的实例
      */
     protected val view: V by lazy { createProxyView() }
 
-    @Volatile
-    private var compositeDisposable: CompositeDisposable? = null
+    /**
+     * EventBus, 默认关闭
+     */
+    protected open val eventBusState = EventBusState.DISABLE
+
+    /**
+     * rx lifecycle
+     * #addDisposable()
+     * #disposeAll()
+     */
+    private val compositeDisposable = CompositeDisposable()
 
     /**
      * 参考 rxlifecycle3: https://github.com/trello/RxLifecycle
@@ -72,16 +82,24 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
             }
         }
 
-    @Suppress("UNCHECKED_CAST")
-    fun <T : BaseMvpView> attach(view: T) {
-        //正常情况 view 是能强制转成 V 类型的,如果强转失败通常是因为 view 没有实现对应的接口
-        val realView: V = (view as? V)
-            ?: throw IllegalArgumentException("$view not implement ${findViewClassFromPresenterClass()}")
-        //保存 view 的引用
-        realViewRefs = WeakReference(realView)
-        //监听 view 的生命周期
-        realView.getLifecycle().addObserver(this)
+    /**
+     * 用于判断 presenter 的生命周期是否处于活跃状态
+     */
+    fun isActive(): Boolean = viewRefs?.get()?.isActive() ?: false
+
+    /**
+     * 获取 presenter 的当前生命周期状态
+     */
+    fun getCurrentState(): Lifecycle.State = viewRefs?.get()?.getCurrentState() ?: Lifecycle.State.DESTROYED
+
+    fun attach(view: V) {
+        viewRefs = WeakReference(view)
+        view.getLifecycle().addObserver(this)
         onAttached()
+    }
+
+    protected open fun onAttached() {
+        //no op
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -93,15 +111,15 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
                 if (method.declaringClass == Object::class.java) {
                     return method.invoke(this, args)
                 }
-                val realView = realViewRefs?.get()
+                val view = viewRefs?.get()
                 //检查 view 的实例状态
-                if (realView == null || !realView.isActive()) {
+                if (view == null || !view.isActive()) {
                     Log.w("tag", "$method view state invalid")
                     return getDefaultReturnValue(method)
                 }
                 return try {
                     //注意: 这里不能直接使用 args,因为 kotlin 的数组类型和 java 的可变参不能通用
-                    method.invoke(realView, *(args ?: arrayOfNulls<Any?>(0)))
+                    method.invoke(view, *(args ?: arrayOfNulls<Any?>(0)))
                 } catch (t: Throwable) {
                     Log.e("tag", "$method error: $t")
                     getDefaultReturnValue(method)
@@ -112,33 +130,44 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
 
     @Suppress("UNCHECKED_CAST")
     private fun findViewClassFromPresenterClass(): Class<V> {
-        var absPresenterClass = this.javaClass.superclass!!
+        var absPresenterClass = javaClass.superclass
+            ?: throw IllegalArgumentException("can not found view interface: $this")
         while (absPresenterClass.superclass != BaseMvpPresenter::class.java) {
-            absPresenterClass = absPresenterClass.superclass!!
+            absPresenterClass = absPresenterClass.superclass
+                ?: throw IllegalArgumentException("can not found view interface: $this")
         }
         val type = absPresenterClass.genericSuperclass as ParameterizedType
-        return type.actualTypeArguments[0] as Class<V>
+        return type.actualTypeArguments[0] as? Class<V>
+            ?: throw IllegalArgumentException("can not found view interface: $this")
     }
 
     private fun detach() {
-        realViewRefs?.get()?.let {
-            it.getLifecycle().removeObserver(this)
-            realViewRefs?.clear()
-            realViewRefs = null
+        viewRefs?.let {
+            it.get()?.getLifecycle()?.removeObserver(this)
+            it.clear()
+            viewRefs = null
         }
-        clearDisposable()
+        disposeAll()
         cancelCoroutineJob()
         onDetached()
     }
 
+    protected open fun onDetached() {
+        //no op
+    }
+
+    @CallSuper
     override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
         when (event) {
             Lifecycle.Event.ON_CREATE -> {
                 lifecycleSubject.onNext(ActivityEvent.CREATE)
+                if (eventBusState == EventBusState.CREATE_DESTROY) {
+                    EventBusUtil.register(this)
+                }
             }
             Lifecycle.Event.ON_START -> {
                 lifecycleSubject.onNext(ActivityEvent.START)
-                if (isEventBusEnabled()) {
+                if (eventBusState == EventBusState.START_STOP) {
                     EventBusUtil.register(this)
                 }
             }
@@ -150,39 +179,38 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
             }
             Lifecycle.Event.ON_STOP -> {
                 lifecycleSubject.onNext(ActivityEvent.STOP)
-                if (isEventBusEnabled()) {
+                if (eventBusState == EventBusState.START_STOP) {
                     EventBusUtil.unregister(this)
                 }
             }
             Lifecycle.Event.ON_DESTROY -> {
                 lifecycleSubject.onNext(ActivityEvent.DESTROY)
+                if (eventBusState == EventBusState.CREATE_DESTROY) {
+                    EventBusUtil.unregister(this)
+                }
                 detach()
             }
             Lifecycle.Event.ON_ANY -> {
                 //no op
             }
         }
-        //回调到业务层
-        onLifecycleStateChanged(event)
     }
 
-    /**
-     * 是否开启EventBus支持,默认关闭
-     */
-    protected open fun isEventBusEnabled(): Boolean {
-        return false
-    }
+    enum class EventBusState {
+        /**
+         * 不启用 EventBus
+         */
+        DISABLE,
 
-    protected open fun onAttached() {
-        //no op
-    }
+        /**
+         * EventBus 在 onCreate 中注册, onDestroy 中反注册
+         */
+        CREATE_DESTROY,
 
-    protected open fun onDetached() {
-        //no op
-    }
-
-    protected open fun onLifecycleStateChanged(event: Lifecycle.Event) {
-        //no op
+        /**
+         * EventBus 在 onStop 中注册, onStop 中反注册 (官方推荐)
+         */
+        START_STOP
     }
 
     /**
@@ -192,20 +220,12 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
         return GlobalContext.get()
     }
 
-    @Synchronized
     protected fun addDisposable(disposable: Disposable) {
-        val compositeDisposable = compositeDisposable ?: CompositeDisposable().also {
-            compositeDisposable = it
-        }
         compositeDisposable.add(disposable)
     }
 
-    @Synchronized
-    protected fun clearDisposable() {
-        compositeDisposable?.let {
-            it.clear()
-            compositeDisposable = null
-        }
+    protected fun disposeAll() {
+        compositeDisposable.dispose()
     }
 
     /**
@@ -244,8 +264,8 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
         /**
          * 以下基本数据类型因为存在拆装箱操作,所以在 invoke 方法中不能直接返回 null,某则会发生类型转换异常
          */
-        private val defaultValue: Map<Class<*>, Any?> by lazy {
-            mutableMapOf<Class<*>, Any?>().apply {
+        private val defaultValue: Map<Class<*>, Any> by lazy {
+            mutableMapOf<Class<*>, Any>().apply {
                 put(Byte::class.java, Byte.MIN_VALUE)
                 put(Short::class.java, Short.MIN_VALUE)
                 put(Char::class.java, Char.MIN_VALUE)
@@ -254,7 +274,6 @@ abstract class BaseMvpPresenter<V : BaseMvpView> : LifecycleEventObserver, KoinC
                 put(Float::class.java, Float.MIN_VALUE)
                 put(Double::class.java, Double.MIN_VALUE)
                 put(Boolean::class.java, false)
-                put(String::class.java, "")
             }
         }
 

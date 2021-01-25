@@ -6,7 +6,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.automizely.framework.mvp.BaseMvpActivity;
+import com.automizely.framework.base.BaseMvpActivity;
 import com.automizely.framework.mvp.MvpExt;
 import com.automizely.mvp.R;
 import com.automizely.mvp.java.contract.JavaDemoContract;

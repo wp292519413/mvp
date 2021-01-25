@@ -1,5 +1,8 @@
 package com.automizely.mvp.user.presenter
 
+import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import com.automizely.mvp.user.contract.UserContract
 import com.automizely.mvp.user.model.User
 import com.automizely.mvp.user.model.UserModel
@@ -19,6 +22,8 @@ class UserPresenter : UserContract.AbsUserPresenter() {
     //通过注入依赖model
     private val userModel: UserModel by inject()
 
+    override val eventBusState = EventBusState.DISABLE
+
     override fun login(name: String, pwd: String) {
         if (name.isEmpty() || pwd.isEmpty()) {
             view.onLoginFail("用户名或者密码不能为空")
@@ -27,9 +32,10 @@ class UserPresenter : UserContract.AbsUserPresenter() {
         userModel.login(name, pwd)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
+            .compose(bindToLifecycle())
             .subscribe(object : SingleObserver<User> {
                 override fun onSubscribe(d: Disposable) {
-                    addDisposable(d)
+                    //addDisposable(d)
                 }
 
                 override fun onSuccess(user: User) {
@@ -40,6 +46,11 @@ class UserPresenter : UserContract.AbsUserPresenter() {
                     view.onLoginFail(t.message ?: "未知错误")
                 }
             })
+    }
+
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+        super.onStateChanged(source, event)
+        Log.e("tag", "onStateChanged: $event")
     }
 
 }
